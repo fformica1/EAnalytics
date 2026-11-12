@@ -1,0 +1,196 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html.theme-light {
+    color-scheme: light;
+  }
+
+  html,
+  body {
+    background-color: #121212;
+    color: #f5f5f5;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    overscroll-behavior-y: contain;
+    touch-action: pan-x pan-y;
+  }
+
+  html.theme-light,
+  html.theme-light body {
+    background-color: #f3f5f8;
+    color: #0f172a;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Custom sleek scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+html.theme-light ::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.18);
+}
+html.theme-light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.32);
+}
+
+/* Map tile theming (shared between preview & detail Leaflet map) */
+.map-tiles-themed,
+.leaflet-tile-pane {
+  filter: invert(93%) hue-rotate(180deg) saturate(0.42) brightness(0.92) contrast(1.06);
+}
+html.theme-light .map-tiles-themed,
+html.theme-light .leaflet-tile-pane {
+  filter: saturate(1.04) contrast(1.02);
+}
+
+/* Leaflet map styling */
+.leaflet-container {
+  background: #181a1d;
+  font-family: inherit;
+}
+html.theme-light .leaflet-container {
+  background: #e8ecf1;
+}
+.leaflet-container img.leaflet-tile {
+  max-width: none !important;
+  max-height: none !important;
+}
+.leaflet-control-zoom a {
+  background-color: #1e1e1e !important;
+  color: #f5f5f5 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+html.theme-light .leaflet-control-zoom a {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+}
+.leaflet-control-attribution {
+  background: rgba(18, 18, 18, 0.78) !important;
+  color: #8e9299 !important;
+  font-size: 10px !important;
+}
+html.theme-light .leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: #475569 !important;
+}
+.leaflet-control-attribution a {
+  color: #007CC3 !important;
+}
+
+/* Global Light Theme surface, border and text overrides */
+html.theme-light .bg-\[\#121212\] {
+  background-color: #f3f5f8 !important;
+}
+html.theme-light .bg-\[\#161616\],
+html.theme-light .bg-\[\#1E1E1E\],
+html.theme-light .bg-\[\#111827\],
+html.theme-light .bg-\[\#111827\]\/70 {
+  background-color: #ffffff !important;
+}
+html.theme-light .bg-\[\#161616\]\/95 {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+}
+html.theme-light .bg-\[\#121212\]\/85,
+html.theme-light .bg-\[\#121212\]\/90 {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+}
+html.theme-light .bg-\[\#181A1D\] {
+  background-color: #e8ecf1 !important;
+}
+html.theme-light .bg-\[\#242424\],
+html.theme-light .bg-\[\#262626\],
+html.theme-light .bg-\[\#2A2A2A\],
+html.theme-light .bg-\[\#2E2E2E\] {
+  background-color: #e9edf3 !important;
+}
+html.theme-light .bg-white\/20 {
+  background-color: rgba(15, 23, 42, 0.18) !important;
+}
+html.theme-light .hover\:bg-\[\#262626\]:hover,
+html.theme-light .hover\:bg-\[\#303030\]:hover,
+html.theme-light .hover\:bg-\[\#323232\]:hover,
+html.theme-light .hover\:bg-\[\#1E1E1E\]:hover {
+  background-color: #dde3ec !important;
+}
+html.theme-light .hover\:bg-white\/\[0\.06\]:hover,
+html.theme-light .hover\:bg-white\/10:hover {
+  background-color: rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Text colors in Light Theme (preserving white text on solid colored buttons) */
+html.theme-light .text-white:not([class*="bg-[#007CC3]"]):not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="bg-sky"]),
+html.theme-light .text-\[\#F5F5F5\],
+html.theme-light .text-\[\#E5E5E5\],
+html.theme-light .text-slate-100,
+html.theme-light .text-slate-200 {
+  color: #0f172a !important;
+}
+html.theme-light .text-\[\#D4D6D9\],
+html.theme-light .text-slate-300 {
+  color: #334155 !important;
+}
+html.theme-light .text-\[\#A0A5AA\],
+html.theme-light .text-\[\#8E9299\],
+html.theme-light .text-\[\#7A7E85\],
+html.theme-light .text-\[\#6B7078\],
+html.theme-light .text-\[\#5C6168\],
+html.theme-light .text-slate-400 {
+  color: #475569 !important;
+}
+html.theme-light .text-sky-200,
+html.theme-light .text-sky-300 {
+  color: #0369a1 !important;
+}
+html.theme-light .text-amber-200,
+html.theme-light .text-amber-300 {
+  color: #b45309 !important;
+}
+html.theme-light .text-rose-200,
+html.theme-light .text-rose-300 {
+  color: #be123c !important;
+}
+html.theme-light .text-emerald-300 {
+  color: #047857 !important;
+}
+html.theme-light .hover\:text-white:hover,
+html.theme-light .hover\:text-slate-200:hover {
+  color: #0f172a !important;
+}
+
+/* Borders in Light Theme */
+html.theme-light .border-white\/\[0\.06\],
+html.theme-light .border-white\/\[0\.07\],
+html.theme-light .border-white\/\[0\.08\],
+html.theme-light .border-white\/10,
+html.theme-light .border-white\/15 {
+  border-color: rgba(15, 23, 42, 0.1) !important;
+}
