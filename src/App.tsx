@@ -7,10 +7,10 @@ import {
   MapPin,
   RefreshCw,
   Settings,
-  Sparkles,
   TrendingUp,
 } from 'lucide-react';
 import {
+  clearAllData,
   clearDemoData,
   getActivityDetail,
   getAllActivities,
@@ -22,7 +22,6 @@ import {
   saveDailyHealth,
   saveSettings,
 } from './db/storage';
-import { createDemoDataset } from './data/demoData';
 import { parseUploadedFiles } from './services/fitParser';
 import { downloadAndParseGarminActivity, syncGarminAccount } from './services/garminSync';
 import {
@@ -109,7 +108,7 @@ export function App() {
   useEffect(() => {
     (async () => {
       try {
-        const { acts, health, cfg } = await reloadFromDb();
+        const { acts, cfg } = await reloadFromDb();
 
         const params = new URLSearchParams(window.location.search);
         const stravaCode = params.get('code');
@@ -156,13 +155,12 @@ export function App() {
           return;
         }
 
-        if (acts.length === 0 && health.length === 0) {
-          const demo = createDemoDataset();
-          await saveActivities(demo.activities);
-          for (const d of demo.details) {
-            await saveActivityDetail(d);
+        if (acts.some((a) => a.source === 'demo')) {
+          if (!cfg.lastSyncAt && !cfg.intervalsLastSyncAt && acts.every((a) => a.source === 'demo')) {
+            await clearAllData();
+          } else {
+            await clearDemoData();
           }
-          await saveDailyHealth(demo.health);
           await reloadFromDb();
         }
       } finally {
@@ -459,8 +457,6 @@ export function App() {
   const selectedActivity = activities.find((a) => a.id === selectedActivityId) ?? null;
   const isDetailView = selectedActivity !== null;
   const isSubPage = isDetailView || settingsOpen;
-  const hasOnlyDemo =
-    activities.length > 0 && activities.every((a) => a.source === 'demo');
 
   return (
     <div className="min-h-screen bg-[#121212] text-[#F5F5F5]">
@@ -523,26 +519,6 @@ export function App() {
       >
         {!isSubPage && (
           <>
-            {hasOnlyDemo && !syncing && (
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs text-amber-200">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 shrink-0 text-amber-400" />
-                  <span>
-                    Stai vedendo i <strong>dati dimostrativi</strong>. Inserisci la tua Garmin
-                    Personal API Key o importa file <code>.fit/.gpx</code>.
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setSettingsOpen(true)}
-                    className="rounded-lg bg-amber-400 px-2.5 py-1 font-semibold text-slate-950 hover:bg-amber-300"
-                  >
-                    Apri Impostazioni
-                  </button>
-                </div>
-              </div>
-            )}
-
             {syncError && (
               <div className="mb-4 flex items-center justify-between rounded-2xl border border-rose-500/35 bg-rose-500/10 px-4 py-2.5 text-xs text-rose-200">
                 <span>{syncError}</span>
