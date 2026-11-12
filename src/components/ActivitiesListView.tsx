@@ -300,7 +300,9 @@ function StravaFeedRoutePreview({ coords }: { coords: [number, number][] }) {
       const wrappedX = ((tx % numTiles) + numTiles) % numTiles;
       tiles.push({
         key: `${z}-${tx}-${ty}`,
-        url: `https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${ty}/${wrappedX}`,
+        url: isLight
+          ? `https://basemaps.cartocdn.com/rastertiles/voyager/${z}/${wrappedX}/${ty}.png`
+          : `https://basemaps.cartocdn.com/dark_all/${z}/${wrappedX}/${ty}.png`,
         left: tx * 256 - originX,
         top: ty * 256 - originY,
       });

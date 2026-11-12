@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import type { SportType, StreamPoint } from '../types/fitness';
 import { isRunningLike } from '../utils/formatters';
+import { useIsLightTheme } from '../utils/theme';
 
 type ColorMode = 'speed' | 'hr' | 'ele' | 'grade';
 
@@ -213,9 +214,11 @@ export function ActivityMap({
 }: ActivityMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const gradientLayerRef = useRef<ContinuousGradientLayer | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
   const hoverMarkerRef = useRef<L.CircleMarker | null>(null);
+  const isLight = useIsLightTheme();
 
   const [colorMode, setColorMode] = useState<ColorMode>('speed');
 
@@ -279,14 +282,16 @@ export function ActivityMap({
     });
     mapRef.current = map;
 
-    // Strava-inspired clean muted outdoor topo map
-    L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-      {
-        attribution: '&copy; Esri, OpenStreetMap',
-        maxZoom: 18,
-      }
-    ).addTo(map);
+    // Strava-inspired clean CartoDB Voyager (light) & Dark Matter (dark) map
+    const tileUrl = isLight
+      ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+    const tileLayer = L.tileLayer(tileUrl, {
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 19,
+    }).addTo(map);
+    tileLayerRef.current = tileLayer;
 
     const gradLayer = new ContinuousGradientLayer([], null);
     gradLayer.addTo(map);
@@ -299,11 +304,21 @@ export function ActivityMap({
       clearTimeout(t);
       map.remove();
       mapRef.current = null;
+      tileLayerRef.current = null;
       gradientLayerRef.current = null;
       markersLayerRef.current = null;
       hoverMarkerRef.current = null;
     };
   }, [hasGps]);
+
+  useEffect(() => {
+    if (!tileLayerRef.current) return;
+    tileLayerRef.current.setUrl(
+      isLight
+        ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+        : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    );
+  }, [isLight]);
 
   useEffect(() => {
     const map = mapRef.current;

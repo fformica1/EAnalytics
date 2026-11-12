@@ -61,14 +61,14 @@ html.theme-light ::-webkit-scrollbar-thumb:hover {
   background: rgba(15, 23, 42, 0.32);
 }
 
-/* Map tile theming (shared between preview & detail Leaflet map) */
+/* Map tile theming (native CartoDB Voyager light & Dark Matter dark tiles) */
 .map-tiles-themed,
 .leaflet-tile-pane {
-  filter: invert(93%) hue-rotate(180deg) saturate(0.42) brightness(0.92) contrast(1.06);
+  filter: none;
 }
 html.theme-light .map-tiles-themed,
 html.theme-light .leaflet-tile-pane {
-  filter: saturate(1.04) contrast(1.02);
+  filter: saturate(0.95) contrast(1.03);
 }
 
 /* Leaflet map styling */

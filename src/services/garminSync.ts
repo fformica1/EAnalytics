@@ -40,7 +40,7 @@ function quickHash(val: string): string {
 }
 
 export async function getGarminBearerToken(settings: UserSettings): Promise<string> {
-  const apiKey = settings.garminApiKey.trim();
+  const apiKey = settings.garminApiKey.trim().replace(/^ApiKey\s+/i, '');
   if (!apiKey) {
     throw new Error('Inserisci prima la tua Garmin Personal API Key nelle Impostazioni.');
   }
@@ -59,7 +59,17 @@ export async function getGarminBearerToken(settings: UserSettings): Promise<stri
   });
 
   if (!res.ok) {
-    const errText = await res.text();
+    const errText = await res.text().catch(() => '');
+    if (res.status === 401) {
+      throw new Error(
+        'Autenticazione Garmin fallita (401): Personal API Key non valida, revocata o scaduta.'
+      );
+    }
+    if (res.status === 404 || res.status === 405) {
+      throw new Error(
+        `Bridge /api/garmin non disponibile su questo hosting (${res.status}). Usa il dev server locale o Cloudflare Pages.`
+      );
+    }
     throw new Error(`Autenticazione Garmin fallita (${res.status}): ${errText.slice(0, 180)}`);
   }
 
