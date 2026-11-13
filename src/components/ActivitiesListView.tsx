@@ -165,7 +165,7 @@ export function ActivitiesListView({
           </button>
         </div>
 
-        <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+        <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-0.5">
           <button
             onClick={() => setSportFilter('all')}
             className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
@@ -300,9 +300,7 @@ function StravaFeedRoutePreview({ coords }: { coords: [number, number][] }) {
       const wrappedX = ((tx % numTiles) + numTiles) % numTiles;
       tiles.push({
         key: `${z}-${tx}-${ty}`,
-        url: isLight
-          ? `https://basemaps.cartocdn.com/rastertiles/voyager/${z}/${wrappedX}/${ty}.png`
-          : `https://basemaps.cartocdn.com/dark_all/${z}/${wrappedX}/${ty}.png`,
+        url: `https://tile.openstreetmap.org/${z}/${wrappedX}/${ty}.png`,
         left: tx * 256 - originX,
         top: ty * 256 - originY,
       });
@@ -323,7 +321,7 @@ function StravaFeedRoutePreview({ coords }: { coords: [number, number][] }) {
         className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
         style={{ width: `${canvasW}px`, height: `${canvasH}px` }}
       >
-        {/* Muted Map Tiles (adapts to dark/light theme via .map-tiles-themed) */}
+        {/* Cartoon Map Tiles (adapts to dark/light theme via .map-tiles-themed) */}
         <div className="map-tiles-themed absolute inset-0">
           {tiles.map((tile) => (
             <img
@@ -344,7 +342,7 @@ function StravaFeedRoutePreview({ coords }: { coords: [number, number][] }) {
           ))}
         </div>
 
-        {/* Exact Mercator-aligned GPS Route Overlay */}
+        {/* Exact Mercator-aligned GPS Route Overlay (classic EAnalytics blue route) */}
         <svg
           width={canvasW}
           height={canvasH}
@@ -353,8 +351,8 @@ function StravaFeedRoutePreview({ coords }: { coords: [number, number][] }) {
         >
           <polyline
             fill="none"
-            stroke={isLight ? 'rgba(255, 255, 255, 0.85)' : 'rgba(18, 18, 18, 0.7)'}
-            strokeWidth="6"
+            stroke={isLight ? 'rgba(255, 255, 255, 0.92)' : 'rgba(18, 18, 18, 0.8)'}
+            strokeWidth="5.5"
             strokeLinecap="round"
             strokeLinejoin="round"
             points={pointsStr}

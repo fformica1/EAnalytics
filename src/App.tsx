@@ -169,11 +169,104 @@ export function App() {
     })();
   }, [reloadFromDb]);
 
-  const openActivity = async (activity: ActivitySummary) => {
+  // Synchronize browser history and popstate navigation (system back button / gesture)
+  useEffect(() => {
+    const hash = window.location.hash;
+    let initialTab: ProfileTab = 'activities';
+    let initialActivityId: string | null = null;
+    let initialSettings = false;
+
+    if (hash === '#settings') {
+      initialSettings = true;
+    } else if (hash.startsWith('#activity=')) {
+      initialActivityId = hash.replace('#activity=', '');
+    } else if (hash === '#progress') {
+      initialTab = 'progress';
+    } else if (hash === '#health') {
+      initialTab = 'health';
+    }
+
+    window.history.replaceState(
+      { tab: initialTab, activityId: initialActivityId, settings: initialSettings },
+      '',
+      window.location.hash || '#activities'
+    );
+
+    if (initialSettings) setSettingsOpen(true);
+    if (initialActivityId) setSelectedActivityId(initialActivityId);
+    if (initialTab !== 'activities') setActiveTab(initialTab);
+
+    const onPopState = (e: PopStateEvent) => {
+      const state = e.state;
+      if (state) {
+        setSelectedActivityId(state.activityId ?? null);
+        setSettingsOpen(Boolean(state.settings));
+        if (state.tab) setActiveTab(state.tab);
+      } else {
+        setSelectedActivityId(null);
+        setSettingsOpen(false);
+        setActiveTab('activities');
+      }
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  // Fetch detail whenever selectedActivityId changes
+  useEffect(() => {
+    let cancelled = false;
+    if (!selectedActivityId) {
+      setSelectedDetail(undefined);
+      return;
+    }
+    getActivityDetail(selectedActivityId).then((detail) => {
+      if (!cancelled) setSelectedDetail(detail);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedActivityId]);
+
+  const openActivity = (activity: ActivitySummary) => {
+    window.history.pushState(
+      { tab: activeTab, activityId: activity.id, settings: false },
+      '',
+      `#activity=${activity.id}`
+    );
     setSelectedActivityId(activity.id);
-    const detail = await getActivityDetail(activity.id);
-    setSelectedDetail(detail);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
+  const openSettings = () => {
+    window.history.pushState(
+      { tab: activeTab, activityId: null, settings: true },
+      '',
+      '#settings'
+    );
+    setSettingsOpen(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const navigateToTab = (tab: ProfileTab) => {
+    if (tab === activeTab && !selectedActivityId && !settingsOpen) return;
+    window.history.pushState(
+      { tab, activityId: null, settings: false },
+      '',
+      `#${tab}`
+    );
+    setActiveTab(tab);
+    setSelectedActivityId(null);
+    setSettingsOpen(false);
+  };
+
+  const handleNavigateBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      setSelectedActivityId(null);
+      setSettingsOpen(false);
+    }
   };
 
   const handleSyncGarmin = async (
@@ -460,16 +553,17 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-[#121212] text-[#F5F5F5]">
-      {/* Fixed-Height Unified Top Bar across ALL screens */}
-      <header className="sticky top-0 z-[700] h-14 border-b border-white/[0.08] bg-[#161616]/95 backdrop-blur-lg">
+      {/* Fixed-Height Unified Top Bar across ALL screens (hidden on mobile when viewing activity analysis) */}
+      <header
+        className={`sticky top-0 z-[700] h-14 border-b border-white/[0.08] bg-[#161616]/95 backdrop-blur-lg ${
+          isDetailView ? 'hidden sm:block' : ''
+        }`}
+      >
         <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-3 sm:px-4">
           {isSubPage ? (
             <div className="flex min-w-0 items-center gap-2.5">
               <button
-                onClick={() => {
-                  if (settingsOpen) setSettingsOpen(false);
-                  else setSelectedActivityId(null);
-                }}
+                onClick={handleNavigateBack}
                 aria-label="Torna indietro"
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#A0A5AA] transition hover:bg-white/[0.06] hover:text-white"
               >
@@ -481,7 +575,7 @@ export function App() {
             </div>
           ) : (
             <span className="text-lg font-extrabold tracking-tight text-white sm:text-xl">
-              MetricLab
+              EAnalytics
             </span>
           )}
 
@@ -500,7 +594,7 @@ export function App() {
               </button>
 
               <button
-                onClick={() => setSettingsOpen(true)}
+                onClick={openSettings}
                 aria-label="Impostazioni"
                 title="Impostazioni"
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-[#A0A5AA] transition hover:bg-white/[0.06] hover:text-white"
@@ -513,8 +607,12 @@ export function App() {
       </header>
 
       <main
-        className={`mx-auto max-w-6xl px-3 sm:px-4 ${
-          isSubPage ? 'pt-0 sm:pt-4' : 'pt-4'
+        className={`mx-auto max-w-6xl ${
+          isDetailView
+            ? 'px-0 pt-0 sm:px-4 sm:pt-4'
+            : isSubPage
+              ? 'px-3 pt-0 sm:px-4 sm:pt-4'
+              : 'px-3 pt-4 sm:px-4'
         }`}
       >
         {!isSubPage && (
@@ -605,19 +703,19 @@ export function App() {
               <div className="mt-4 grid grid-cols-3 border-t border-white/[0.08]">
                 <ProfileTabButton
                   active={activeTab === 'activities'}
-                  onClick={() => setActiveTab('activities')}
+                  onClick={() => navigateToTab('activities')}
                   icon={<Activity className="h-4 w-4" />}
                   label="Attività"
                 />
                 <ProfileTabButton
                   active={activeTab === 'progress'}
-                  onClick={() => setActiveTab('progress')}
+                  onClick={() => navigateToTab('progress')}
                   icon={<TrendingUp className="h-4 w-4" />}
                   label="Progressi"
                 />
                 <ProfileTabButton
                   active={activeTab === 'health'}
-                  onClick={() => setActiveTab('health')}
+                  onClick={() => navigateToTab('health')}
                   icon={<HeartPulse className="h-4 w-4" />}
                   label="Health"
                 />
@@ -652,6 +750,7 @@ export function App() {
           <ActivityDetailView
             activity={selectedActivity}
             detail={selectedDetail}
+            onBack={handleNavigateBack}
             onDownloadGarminFit={handleDownloadGarminFit}
             onDownloadIntervalsStreams={handleDownloadIntervalsStreams}
             onDownloadStravaStreams={handleDownloadStravaStreams}
@@ -660,7 +759,7 @@ export function App() {
           <ActivitiesListView
             activities={activities}
             onSelectActivity={openActivity}
-            onOpenImport={() => setSettingsOpen(true)}
+            onOpenImport={openSettings}
           />
         ) : activeTab === 'progress' ? (
           <ProgressView

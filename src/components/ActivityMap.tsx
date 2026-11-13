@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
+import { LocateFixed } from 'lucide-react';
 import type { SportType, StreamPoint } from '../types/fitness';
 import { isRunningLike } from '../utils/formatters';
 import { useIsLightTheme } from '../utils/theme';
@@ -74,18 +75,21 @@ class ContinuousGradientLayer extends L.Layer {
   private canvas: HTMLCanvasElement | null = null;
   private nodes: ColoredNode[] = [];
   private highlightRange: [number, number] | null = null;
+  private isLight = false;
   private drawnZoom = 0;
   private drawnTopLeft: L.LatLng | null = null;
 
-  constructor(nodes: ColoredNode[], highlightRange: [number, number] | null) {
+  constructor(nodes: ColoredNode[], highlightRange: [number, number] | null, isLight: boolean) {
     super();
     this.nodes = nodes;
     this.highlightRange = highlightRange;
+    this.isLight = isLight;
   }
 
-  setData(nodes: ColoredNode[], highlightRange: [number, number] | null) {
+  setData(nodes: ColoredNode[], highlightRange: [number, number] | null, isLight: boolean) {
     this.nodes = nodes;
     this.highlightRange = highlightRange;
+    this.isLight = isLight;
     this.redraw();
   }
 
@@ -159,14 +163,14 @@ class ContinuousGradientLayer extends L.Layer {
       return { x: pt.x, y: pt.y, t: n.t, color: n.color };
     });
 
-    // 1. Single continuous dark outer casing for high contrast on Strava-style light map
+    // 1. Single continuous outer casing for high contrast on cartoon light/dark map
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(pts[0].x, pts[0].y);
     for (let i = 1; i < pts.length; i++) {
       ctx.lineTo(pts[i].x, pts[i].y);
     }
-    ctx.strokeStyle = 'rgba(15, 23, 42, 0.55)';
+    ctx.strokeStyle = this.isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(10, 15, 25, 0.75)';
     ctx.lineWidth = 7;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -240,6 +244,7 @@ export function ActivityMap({
 
   const coloredNodes = useMemo<ColoredNode[]>(() => {
     if (!hasGps) return [];
+
     const rawValues = gpsPoints.map((p) => {
       if (colorMode === 'hr') return p.hr ?? 0;
       if (colorMode === 'ele') return p.ele ?? 0;
@@ -276,24 +281,27 @@ export function ActivityMap({
   useEffect(() => {
     if (!hasGps || !containerRef.current || mapRef.current) return;
 
+    const initialCenter = gpsPoints[0]
+      ? ([gpsPoints[0].lat, gpsPoints[0].lon] as [number, number])
+      : ([45.4642, 9.19] as [number, number]);
+
     const map = L.map(containerRef.current, {
-      zoomControl: true,
+      center: initialCenter,
+      zoom: 13,
+      zoomControl: false,
       attributionControl: true,
+      doubleClickZoom: true,
     });
     mapRef.current = map;
 
-    // Strava-inspired clean CartoDB Voyager (light) & Dark Matter (dark) map
-    const tileUrl = isLight
-      ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-    const tileLayer = L.tileLayer(tileUrl, {
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
-      subdomains: 'abcd',
+    // Cartoon OpenStreetMap (lush greens, vivid azure sea, themed via CSS)
+    const tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
       maxZoom: 19,
     }).addTo(map);
     tileLayerRef.current = tileLayer;
 
-    const gradLayer = new ContinuousGradientLayer([], null);
+    const gradLayer = new ContinuousGradientLayer([], null, isLight);
     gradLayer.addTo(map);
     gradientLayerRef.current = gradLayer;
     markersLayerRef.current = L.layerGroup().addTo(map);
@@ -311,14 +319,75 @@ export function ActivityMap({
     };
   }, [hasGps]);
 
+  // Double-tap and drag zoom gesture (one-finger zoom)
   useEffect(() => {
-    if (!tileLayerRef.current) return;
-    tileLayerRef.current.setUrl(
-      isLight
-        ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-        : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    );
-  }, [isLight]);
+    const el = containerRef.current;
+    if (!el) return;
+
+    let lastTapTime = 0;
+    let isDoubleTapDrag = false;
+    let startY = 0;
+    let startZoom = 0;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) {
+        isDoubleTapDrag = false;
+        return;
+      }
+      const now = Date.now();
+      const timeDiff = now - lastTapTime;
+      const touch = e.touches[0];
+
+      if (timeDiff > 0 && timeDiff < 320) {
+        isDoubleTapDrag = true;
+        startY = touch.clientY;
+        const map = mapRef.current;
+        startZoom = map ? map.getZoom() : 13;
+        e.preventDefault();
+      } else {
+        isDoubleTapDrag = false;
+      }
+      lastTapTime = now;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isDoubleTapDrag || e.touches.length !== 1) return;
+      const map = mapRef.current;
+      if (!map) return;
+
+      e.preventDefault();
+      const currentY = e.touches[0].clientY;
+      const diffY = currentY - startY;
+      const zoomChange = diffY / 85;
+      const targetZoom = Math.max(
+        map.getMinZoom(),
+        Math.min(map.getMaxZoom(), startZoom + zoomChange)
+      );
+      map.setZoom(targetZoom, { animate: false });
+    };
+
+    const onTouchEnd = () => {
+      if (isDoubleTapDrag) {
+        isDoubleTapDrag = false;
+        const map = mapRef.current;
+        if (map) {
+          map.setZoom(Math.round(map.getZoom() * 2) / 2, { animate: true });
+        }
+      }
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd);
+    el.addEventListener('touchcancel', onTouchEnd);
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, []);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -326,7 +395,7 @@ export function ActivityMap({
     const markersLayer = markersLayerRef.current;
     if (!map || !gradLayer || !markersLayer || !hasGps) return;
 
-    gradLayer.setData(coloredNodes, highlightRange ?? null);
+    gradLayer.setData(coloredNodes, highlightRange ?? null, isLight);
     markersLayer.clearLayers();
 
     const first = gpsPoints[0];
@@ -357,9 +426,37 @@ export function ActivityMap({
     const boundsPoints = targetPoints.length >= 2 ? targetPoints : gpsPoints;
     const bounds = L.latLngBounds(boundsPoints.map((p) => [p.lat!, p.lon!]));
 
+    const isMobileHero = heroSheet && typeof window !== 'undefined' && window.innerWidth < 1024;
+    const paddingBottom = isMobileHero ? Math.round(window.innerHeight * 0.58) : 28;
+    const paddingTop = isMobileHero ? 60 : 28;
     map.invalidateSize();
-    map.fitBounds(bounds, { padding: [28, 28] });
+    map.fitBounds(bounds, {
+      paddingTopLeft: [24, paddingTop],
+      paddingBottomRight: [24, paddingBottom],
+    });
   }, [gpsPoints, hasGps, coloredNodes, highlightRange]);
+
+  const recenterTrack = useCallback(() => {
+    const map = mapRef.current;
+    if (!map || gpsPoints.length < 2) return;
+
+    const targetPoints = highlightRange
+      ? gpsPoints.filter((p) => p.t >= highlightRange[0] && p.t <= highlightRange[1])
+      : gpsPoints;
+    const boundsPoints = targetPoints.length >= 2 ? targetPoints : gpsPoints;
+    const bounds = L.latLngBounds(boundsPoints.map((p) => [p.lat!, p.lon!]));
+
+    const isMobileHero = heroSheet && typeof window !== 'undefined' && window.innerWidth < 1024;
+    const paddingBottom = isMobileHero ? Math.round(window.innerHeight * 0.58) : 28;
+    const paddingTop = isMobileHero ? 60 : 28;
+
+    map.invalidateSize();
+    map.fitBounds(bounds, {
+      paddingTopLeft: [24, paddingTop],
+      paddingBottomRight: [24, paddingBottom],
+      animate: true,
+    });
+  }, [gpsPoints, highlightRange, heroSheet]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -414,7 +511,7 @@ export function ActivityMap({
     <div
       className={`relative overflow-hidden bg-[#181A1D] ${
         heroSheet
-          ? 'h-[56vh] min-h-[340px] max-h-[540px] sm:h-[460px] sm:rounded-t-2xl lg:h-full lg:max-h-none lg:min-h-[380px] lg:rounded-xl lg:border lg:border-white/[0.08]'
+          ? 'h-full w-full sm:h-[460px] sm:rounded-t-2xl lg:h-full lg:max-h-none lg:min-h-[380px] lg:rounded-xl lg:border lg:border-white/[0.08]'
           : 'h-72 border-y border-white/[0.08] shadow-xl sm:h-[380px] sm:rounded-xl sm:border'
       }`}
     >
@@ -437,10 +534,20 @@ export function ActivityMap({
         ))}
       </div>
 
+      {/* Re-center GPS Track Button */}
+      <button
+        onClick={recenterTrack}
+        aria-label="Riposiziona traccia GPS"
+        title="Riposiziona sulla traccia GPS predefinita"
+        className="pointer-events-auto absolute right-3 top-14 z-[400] flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-[#121212]/90 text-white shadow-lg backdrop-blur-md transition hover:bg-white/15 active:scale-95"
+      >
+        <LocateFixed className="h-4 w-4 text-[#38bdf8]" />
+      </button>
+
       {/* Bottom color legend */}
       <div
         className={`pointer-events-none absolute left-3 z-[400] flex items-center gap-2 rounded-xl border border-white/10 bg-[#121212]/85 px-2.5 py-1 text-[10px] text-[#D4D6D9] backdrop-blur-md ${
-          heroSheet ? 'bottom-9 lg:bottom-3' : 'bottom-3'
+          heroSheet ? 'bottom-[58dvh] sm:bottom-3' : 'bottom-3'
         }`}
       >
         <span>Basso</span>

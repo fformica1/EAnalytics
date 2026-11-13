@@ -142,8 +142,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'MetricLab — Health & Sport Dashboard',
-        short_name: 'MetricLab',
+        name: 'EAnalytics — Health & Sport Dashboard',
+        short_name: 'EAnalytics',
         description:
           'Dashboard PWA local-first per analisi attività stile Strava/iGPSPORT e metriche salute H24.',
         theme_color: '#121212',

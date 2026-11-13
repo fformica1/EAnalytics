@@ -1,5 +1,5 @@
 {
-  "name": "healt-pulse-pwa",
+  "name": "eanalytics",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -10,11 +10,13 @@
   },
   "dependencies": {
     "@garmin/fitsdk": "^21.221.0",
+    "@maplibre/maplibre-gl-leaflet": "^0.1.4",
     "echarts": "^6.0.0",
     "idb": "^8.0.3",
     "jszip": "^3.10.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.577.0",
+    "maplibre-gl": "^6.18.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

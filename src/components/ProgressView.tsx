@@ -672,7 +672,7 @@ export function ProgressView({
   return (
     <div className="space-y-4 pb-10">
       {/* Sport Filter Chips (Strava Dark Pills) */}
-      <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+      <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-0.5">
         <button
           onClick={() => setSportFilter('all')}
           className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${

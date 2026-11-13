@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ArrowLeft,
   Download,
   Loader2,
   MapPin,
@@ -19,6 +20,7 @@ import { ActivityCharts } from './ActivityCharts';
 interface ActivityDetailViewProps {
   activity: ActivitySummary;
   detail?: ActivityDetail;
+  onBack?: () => void;
   onDownloadGarminFit?: (activity: ActivitySummary) => Promise<void>;
   onDownloadIntervalsStreams?: (activity: ActivitySummary) => Promise<void>;
   onDownloadStravaStreams?: (activity: ActivitySummary) => Promise<void>;
@@ -44,6 +46,7 @@ const PWR_ZONE_LABELS = [
 export function ActivityDetailView({
   activity,
   detail,
+  onBack,
   onDownloadGarminFit,
   onDownloadIntervalsStreams,
   onDownloadStravaStreams,
@@ -625,10 +628,21 @@ export function ActivityDetailView({
   }, [activity, running, streams]);
 
   return (
-    <div className="pb-10 lg:grid lg:grid-cols-12 lg:items-stretch lg:gap-4">
-      {/* Mobile: Sticky Large Strava-Style Map Hero | Desktop: Left Map Column (Row 2, equal height) */}
+    <div className="relative pb-10 lg:grid lg:grid-cols-12 lg:items-stretch lg:gap-4">
+      {/* Mobile Floating Back Button (smartphone only) */}
+      {onBack && (
+        <button
+          onClick={onBack}
+          aria-label="Torna indietro"
+          className="fixed left-3.5 top-3.5 z-[850] flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-[#121212]/85 text-white shadow-2xl backdrop-blur-md transition hover:bg-[#1e1e1e] active:scale-95 sm:hidden"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+      )}
+
+      {/* Mobile: Sticky Full-Height Strava-Style Map Hero | Desktop: Left Map Column (Row 2, equal height) */}
       {hasGpsTrace && (
-        <div className="sticky top-14 z-0 -mx-3 sm:mx-0 lg:static lg:z-auto lg:order-2 lg:col-span-6 lg:h-full">
+        <div className="sticky top-0 z-0 h-[100dvh] w-full sm:h-[460px] lg:static lg:z-auto lg:order-2 lg:col-span-6 lg:h-full">
           <ActivityMap
             streams={streams}
             sport={activity.sport}
@@ -639,15 +653,17 @@ export function ActivityDetailView({
         </div>
       )}
 
-      {/* Mobile: Sliding Sheet | Desktop: lg:contents places Title full-width (order-1), Stats right (order-3), Charts below (order-4) */}
+      {/* Mobile: Sliding Sheet with raised default height | Desktop: lg:contents */}
       <div
         className={
           hasGpsTrace
-            ? 'relative z-10 -mx-3 -mt-6 space-y-3 rounded-t-3xl border-t border-white/[0.1] bg-[#121212] px-3 pt-2.5 shadow-[0_-12px_36px_rgba(0,0,0,0.75)] sm:mx-0 sm:space-y-4 sm:px-0 sm:pt-3 lg:contents'
+            ? 'relative z-10 -mt-[56dvh] space-y-3 rounded-t-3xl border-t border-white/[0.12] bg-[#121212] px-3.5 pb-10 pt-3 shadow-[0_-16px_40px_rgba(0,0,0,0.85)] sm:mx-0 sm:mt-0 sm:space-y-4 sm:rounded-none sm:border-0 sm:bg-transparent sm:px-0 sm:pb-0 sm:pt-0 sm:shadow-none lg:contents'
             : 'space-y-3 pt-3 sm:space-y-4 sm:pt-0 lg:contents'
         }
       >
-        {hasGpsTrace && <div className="mx-auto h-1 w-10 rounded-full bg-white/20 lg:hidden" />}
+        {hasGpsTrace && (
+          <div className="mx-auto mb-1 h-1.5 w-12 rounded-full bg-white/25 sm:hidden" />
+        )}
 
         {/* Desktop Row 1 Full Width: Activity Title, Date, Time & Location */}
         <div className="space-y-3 lg:order-1 lg:col-span-12">
